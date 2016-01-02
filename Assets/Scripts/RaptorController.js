@@ -12,9 +12,10 @@ public var patrolSpeed :float;
 public var jumpForce :float;
 public var maxPlayerProximity :float;
 public var stealthTimeout :int;
+public var pointValue :int;
+public var willShootY :float;
 
-
-
+var drops :GameObject[];
 private var shotCooldown :int;
 private var stealthReset :int;
 private var moveWait :int;
@@ -81,8 +82,27 @@ function TakeDamage (damage :int) {
 	health -= damage;
 	if (health <= 0) {
 		Destroy(gameObject);
+		player.SendMessage('GetPoints', pointValue);
+		RandomDrop();
 	} else {
 		this.gameObject.SendMessage('DisplayDamage');
+	}
+}
+
+function RandomDrop () {
+	var drop :GameObject;
+	var randomizer = Random.Range(0, 8);
+	if (randomizer == 0) {
+		return;
+	} else if (randomizer == 2) {
+		drop = Instantiate(drops[0]);
+	} else if (randomizer == 3) {
+		drop = Instantiate(drops[2]);
+	} else {
+		drop = Instantiate(drops[1]);
+	}
+	if (drop) {
+		drop.transform.position = transform.position;
 	}
 }
 
@@ -132,11 +152,11 @@ function CanSeePlayer() :boolean {
 }
 
 function OnCollisionEnter2D(other :Collision2D) {
-	if (other.transform.gameObject == platform && other.contacts[0].point.y < transform.position.y) onGround = true;
+	if (other.transform.gameObject == platform && other.contacts[0].point.y < transform.position.y - 1f) onGround = true;
 }
 
 function OnCollisionExit2D(other :Collision2D) {
-	if (other.transform.gameObject == platform && other.contacts[0].point.y < transform.position.y) onGround = false;
+	if (other.transform.gameObject == platform && other.contacts[0].point.y < transform.position.y - 1f) onGround = false;
 }
 
 function Patrol(obstacles :Obstacles) {
@@ -166,7 +186,7 @@ function FollowAttack(obstacles :Obstacles) {
 		awareOfPlayer = false;
 	}
 
-	if (!shotCooldown && Mathf.Abs(lastKnownPos.y - transform.position.y) < 0.2) {
+	if (!shotCooldown && Mathf.Abs(lastKnownPos.y - transform.position.y) < willShootY) {
 		Face(lastKnownPos);
 		Shoot();
 	} else if (!moveWait) {
@@ -197,7 +217,7 @@ function Shoot() {
 	animator.SetBool("walking", false);
 	animator.SetTrigger("shoot");
 	var newShot :GameObject = Instantiate(currentWeapon, Vector2(gameObject.transform.position.x + (shotOffset.x * transform.localScale.x), gameObject.transform.position.y + shotOffset.y), Quaternion.identity);
-	newShot.GetComponent(ProjectileController).direction = -transform.localScale.x;
+	newShot.GetComponent(ProjectileController).direction.x = -transform.localScale.x;
 	shotCooldown = shootingCooldown;
 	moveWait = waitAfterShooting;
 }
