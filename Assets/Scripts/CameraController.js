@@ -16,7 +16,7 @@ private var shaking :boolean;
 private var boundary :Bounds;
 private var cameraObj :Camera;
 private var targetPosition :Vector3;
-/*private*/ var targetZoom :float;
+private var targetZoom :float;
 
 
 function Start () {
@@ -24,6 +24,12 @@ function Start () {
 	targetZoom = cameraObj.orthographicSize;
 	zoom = targetZoom;
 	player = GameObject.Find('Player');
+	transform.position = new Vector3(
+		player.transform.position.x,
+		player.transform.position.y,
+		-10f
+	);
+	if (Application.loadedLevelName == 'MiniBossFight') SetZoom(15);
 	SetBoundaries(startingBounds);
 }
 
@@ -62,10 +68,6 @@ function FixedUpdate () {
 		}
 	}
 
-//	Debug.Log(cameraObj.ScreenToWorldPoint(Vector2(cameraObj.pixelWidth / 2, cameraObj.pixelHeight / 2)));
-//	Debug.Log(cameraObj.WorldToScreenPoint(targetPosition));
-
-
 }
 
 function SetZoom(zoom :float, speed :float) {
@@ -84,10 +86,6 @@ function SetPosition(position :Vector2, speed :Vector2, stayInBounds) {
 	if (stayInBounds && (boundary.extents.x || boundary.extents.y)) {
 		var minBound :Vector2 = MinBound(position);
 		var maxBound :Vector2 = MaxBound(minBound);
-
-		position = minBound;
-
-//		Debug.Log(Vector2(minBound.x - maxBound.x, minBound.y - maxBound.y));
 
 		position = new Vector2(
 			Mathf.Min(maxBound.x, minBound.x),
@@ -137,11 +135,11 @@ function SetBoundaries(obj :GameObject) {
 }
 
 function MinBound(position :Vector2) :Vector2 {
-	return EitherBound(position, 2f, boundary.min, Mathf.Max);
+	return EitherBound(position, 1.9f, boundary.min, Mathf.Max);
 }
 
 function MaxBound(position :Vector2) :Vector2 {
-	return EitherBound(position, -2f, boundary.max, Mathf.Min);
+	return EitherBound(position, -1.9f, boundary.max, Mathf.Min);
 }
 
 function EitherBound(position :Vector2, divisor :float, boundPos :Vector2, compare :Function) :Vector2 {

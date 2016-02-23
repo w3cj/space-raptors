@@ -40,8 +40,11 @@ public class Methods extends MonoBehaviour {
 		}
 		return null;
 	}
-	static function onTaggedObjectCorners(object :ObjectWithCorners, platforms :ObjectWithCorners[], tolerance :float) :ObjectWithCorners {
-		
+	public static function onSomething(object :GameObject, tolerance :float) :GameObject {
+		var ray :RaycastHit2D = RaycastClosest(object.transform.position, Vector2(0, -1), object.transform);
+		var corner :ObjectWithCorners = new ObjectWithCorners(object);
+		if (ray.distance <= (object.transform.position.y - corner.corners.bottomLeft.y) + tolerance) return ray.transform.gameObject;
+		else return null;
 	}
 	static function distance(point1 :Vector2, point2 :Vector2): float {
 		return Mathf.Sqrt(Mathf.Pow(point1.x - point2.x, 2.0) + Mathf.Pow(point1.y - point2.y, 2.0));
@@ -141,5 +144,15 @@ public class Methods extends MonoBehaviour {
 			return distance(trans.position, ray2.point) - distance(trans.position, ray1.point);
 		});
 		return array[0];
+	}
+	static function compareVectors(ve1 :Vector3, ve2 :Vector3, tolerance :float) :boolean {
+		return Mathf.Abs(ve1.x - ve2.x) <= tolerance &&
+			Mathf.Abs(ve1.y - ve2.y) <= tolerance &&
+			Mathf.Abs(ve1.z - ve2.z) <= tolerance;
+	}
+	static function destroyChildren(object :GameObject) {
+		for (var child :Transform in object.transform) {
+			Destroy(child.gameObject);
+		}
 	}
 }

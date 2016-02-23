@@ -17,9 +17,10 @@ var collisionDamage :int;
 var stealthTime :float;
 var stealth :boolean;
 var stealthCooldown :float;
-public var spawnPoint :Transform;
 var bootDust :GameObject;
 var ammo :int[];
+var pauseMenu :GameObject;
+var paused :boolean;
 
 private var score : int;
 private var HUDManager :HUDManager;
@@ -33,16 +34,28 @@ private var weaponIcon :Sprite;
 private var ammoType :int;
 
 function Start () {
-	score = 0;
 	shotCooldown = 0;
-	weaponAnimator = currentWeapon.GetComponent(Animator);
-	weaponProjectile = currentWeapon.GetComponent(WeaponDetails).projectile;
-	weaponIcon = currentWeapon.GetComponent(WeaponDetails).weaponIcon;
-	ammoType = currentWeapon.GetComponent(WeaponDetails).ammoType -1;
 	HUDManager = GameObject.Find("HUDCanvas").GetComponent("HUDManager");
 	SoundFXManager = GameObject.Find("SoundFX").GetComponent("SoundFXManager");
 	audioSource = gameObject.GetComponent(AudioSource);
 	previousPosition = new Vector2(0,0);
+	GameObject.Find('CheckpointController').GetComponent(CheckpointController).Load();
+}
+
+function OnLevelWasLoaded () {
+	HUDManager = GameObject.Find("HUDCanvas").GetComponent("HUDManager");
+	InitHUD();
+}
+
+function OnSpawn() {
+	weaponAnimator = currentWeapon.GetComponent(Animator);
+	weaponProjectile = currentWeapon.GetComponent(WeaponDetails).projectile;
+	weaponIcon = currentWeapon.GetComponent(WeaponDetails).weaponIcon;
+	ammoType = currentWeapon.GetComponent(WeaponDetails).ammoType -1;
+}
+
+function Awake () {
+	DontDestroyOnLoad(transform.gameObject);
 }
 
 function setAnimation (name :String, state :boolean) {
@@ -69,6 +82,14 @@ function FixedUpdate () {
 	if (switchCooldown) {
 		switchCooldown -= Time.deltaTime;
 	}
+
+	if (Input.GetAxis("Cancel")) {
+		if (!paused) {
+			paused = true;
+			Instantiate(pauseMenu);
+		}
+	}
+
 	var direction = Input.GetAxisRaw("Horizontal") * speed * Time.deltaTime;
 	if (animator.GetBool("dead") == false) {
 		var moved :boolean = !Mathf.Approximately(transform.position.x, previousPosition.x) ||
@@ -158,7 +179,7 @@ function ItemPickup (newItem :GameObject) {
 	if (newItem.tag == "Weapon") {
 		System.Array.Resize.<GameObject>(weapons, weapons.length + 1);
 		weapons[weapons.length - 1] = newItem;
-		ammo[newItem.GetComponent(WeaponDetails).ammoType]+=20;
+		ammo[newItem.GetComponent(WeaponDetails).ammoType-1]+=20;
 		SwitchWeapon(newItem);
 	} else if (newItem.tag == "Powerup") {
 		if (newItem.name.Contains("Health" && "25")) {
@@ -170,8 +191,8 @@ function ItemPickup (newItem :GameObject) {
 		} else if (newItem.name.Contains("Health" && "Max")) {
 			HealDamage(100);
 			SoundFXManager.Play(audioSource, "item_pickup", "health_max");
-		} else if (newItem.name.Contains("Armor" && "50")) {
-			IncreaseArmor(50);
+		} else if (newItem.name.Contains("Armor" && "30")) {
+			IncreaseArmor(30);
 			SoundFXManager.Play(audioSource, "item_pickup", "powerup");
 		} else if (newItem.name.Contains("Armor" && "100")) {
 			IncreaseArmor(100);
@@ -193,10 +214,10 @@ function OnCollisionEnter2D (collision :Collision2D) {
 //	} else
 	if (collision.gameObject.tag == "Spikes") {
 		if (armor > 0) {
-			TakeDamage(collisionDamage * 2);
+			TakeDamage(collisionDamage * 1);
 			SoundFXManager.Play(audioSource, "explosion", "small");
 		} else {
-			TakeDamage(collisionDamage * 4);
+			TakeDamage(collisionDamage * 3);
 			SoundFXManager.Play(audioSource, "explosion", "medium");
 		}
 	}
@@ -204,6 +225,7 @@ function OnCollisionEnter2D (collision :Collision2D) {
 
 //TODO: Refactor IncreaseArmor and HealDamage into a PowerUp function
 function IncreaseArmor (heal :int) {
+	Debug.Log(heal + " armor pickup");
 	armor += heal;
 	if (armor > 100) {
 		armor = 100;
@@ -221,7 +243,7 @@ function HealDamage (heal :int) {
 
 function IncreaseAmmo (value :int, ammoId :int) {
 	ammo[ammoId] += value;
-	if (ammoId == currentWeapon.GetComponent(WeaponDetails).ammoType) {
+	if (ammoId == currentWeapon.GetComponent(WeaponDetails).ammoType - 1) {
 		HUDManager.UpdateAmmo(ammo[ammoId]);
 	}
 }
@@ -241,22 +263,25 @@ function TakeDamage (damage :int) {
 		}
 	}
 	if (health > 0) {
-		this.gameObject.SendMessage("DisplayDamage");
+//		this.gameObject.SendMessage("DisplayDamage");
 		HUDManager.UpdateArmor(armor);
 		HUDManager.UpdateHealth(health);
+	
 	} else {
 		HUDManager.UpdateArmor(0);
 		HUDManager.UpdateHealth(0);
 	}
+	transform.position.x += (-transform.localScale.x / 4);
 }
 
 function SwitchWeapon (weapon :GameObject) {
-	Destroy(currentWeapon);
+	Methods.destroyChildren(this.gameObject);
 	var newWeapon = Instantiate(weapon, gameObject.transform.position, Quaternion.identity);
 	newWeapon.transform.parent = gameObject.transform;
 	newWeapon.transform.localScale.x *= transform.localScale.x;
 	currentWeapon = newWeapon;
 	weaponAnimator = currentWeapon.GetComponent(Animator);
+	weaponAnimator.enabled = true;
 	weaponProjectile = currentWeapon.GetComponent(WeaponDetails).projectile;
 	weaponIcon = currentWeapon.GetComponent(WeaponDetails).weaponIcon;
 	ammoType = currentWeapon.GetComponent(WeaponDetails).ammoType -1;
@@ -271,5 +296,23 @@ function GetPoints (points: int) {
 }
 
 function Die () {
+	Destroy(this.gameObject);
 	Application.LoadLevel (Application.loadedLevel);
+}
+
+function GetScore() :int {
+	return score;
+}
+
+function ResetScore(newScore :int) {
+	score = newScore;
+}
+
+function InitHUD() {
+	HUDManager.UpdateHealth(health);
+	HUDManager.UpdateArmor(armor);
+	HUDManager.UpdateStealth(stealthTime);
+	HUDManager.UpdatePoints(score);
+	HUDManager.UpdateWeapon(weaponIcon);
+	HUDManager.UpdateAmmo(ammo[ammoType]);
 }

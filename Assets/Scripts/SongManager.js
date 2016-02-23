@@ -1,29 +1,33 @@
 ﻿#pragma strict
 
-var song1 :AudioClip;
-var song2 :AudioClip;
-var song3 :AudioClip;
-var audioSource :AudioSource;
+var song1 :AudioSource;
+var song2 :AudioSource;
+var song3 :AudioSource;
 var dropDown :UnityEngine.UI.Dropdown;
 
 function Start () {
-	song1 = Resources.Load("Sounds/song1", AudioClip);
-	song2 = Resources.Load("Sounds/song2", AudioClip);
-	song3 = Resources.Load("Sounds/song3", AudioClip);
-	audioSource = gameObject.Find("HUDCanvas").GetComponent(AudioSource);
-	audioSource.clip = song3;
-	audioSource.Play();
+	if (Application.loadedLevelName == 'MiniBossFight') Play(3);
+	else Play(2);
+}
+
+function Update () {
+
 }
 
 function Play(num :int) {
-	num = dropDown.value;
-	audioSource.Stop();
+//	num = dropDown.value;
+	StopAll();
 	if(num == 1) {
-		audioSource.clip = song1;
+		song1.Play();
 	} else if (num == 2) {
-		audioSource.clip = song2;
+		song2.Play();
 	} else if (num == 3) {
-		audioSource.clip = song3;
+		song3.Play();
 	}
-	audioSource.Play();
+}
+
+function StopAll() {
+	song1.Stop();
+	song2.Stop();
+	song3.Stop();
 }
